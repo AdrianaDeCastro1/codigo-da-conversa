@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Código da Conversa — Descubra seu padrão</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --navy: #01319D; --green: #86BD08; --purple: #834DAF;
+    --offwhite: #F6F4F7; --charcoal: #3E4649; --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--offwhite); color: var(--charcoal); margin: 0; padding: 40px 16px;
+    display: flex; justify-content: center; min-height: 100vh;
+  }
+  .card {
+    background: var(--white); border-radius: 20px; max-width: 640px; width: 100%;
+    padding: 44px 36px; box-shadow: 0 10px 40px rgba(1,49,157,0.12);
+  }
+  .brand { color: var(--green); font-weight: 700; letter-spacing: 0.08em; font-size: 13px; margin-bottom: 6px; }
+  .progress-wrap { background: var(--offwhite); border-radius: 10px; height: 8px; margin: 18px 0 30px; overflow: hidden; }
+  .progress-bar { background: var(--green); height: 100%; width: 0%; transition: width 0.3s ease; }
+  h2.qtext { color: var(--navy); font-family: Georgia, serif; font-size: 22px; line-height: 1.4; margin-bottom: 26px; }
+  .opt {
+    display: block; width: 100%; text-align: left; background: var(--offwhite);
+    border: 2px solid transparent; border-radius: 12px; padding: 16px 18px; margin-bottom: 12px;
+    font-size: 15.5px; color: var(--charcoal); cursor: pointer; transition: all 0.15s ease;
+  }
+  .opt:hover { border-color: var(--green); background: #f0f7e0; }
+  .opt.selected { border-color: var(--green); background: #eaf5cf; }
+  .email-step h2 { color: var(--navy); font-family: Georgia, serif; font-size: 22px; margin-bottom: 10px; }
+  .email-step p { font-size: 15px; margin-bottom: 20px; }
+  input[type=email] {
+    width: 100%; padding: 15px 16px; border-radius: 10px; border: 2px solid #ddd;
+    font-size: 15px; margin-bottom: 18px;
+  }
+  input[type=email]:focus { outline: none; border-color: var(--navy); }
+  .btn {
+    display: inline-block; background: var(--green); color: white; font-weight: 700;
+    border: none; border-radius: 30px; padding: 15px 32px; font-size: 15.5px; cursor: pointer;
+    width: 100%;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .result-badge {
+    display: inline-block; padding: 8px 20px; border-radius: 30px; color: white; font-weight: 700;
+    font-size: 14px; letter-spacing: 0.05em; margin-bottom: 20px;
+  }
+  .result-title { font-family: Georgia, serif; font-size: 30px; color: var(--navy); margin-bottom: 18px; }
+  .result-quote { font-style: italic; font-size: 18px; color: var(--purple); border-left: 4px solid var(--green); padding-left: 16px; margin-bottom: 22px; }
+  .result-label { font-weight: 700; color: var(--navy); margin-bottom: 4px; margin-top: 18px; }
+  .result-text { font-size: 15.5px; margin-bottom: 8px; }
+  .trust-note { font-size: 13px; font-style: italic; color: var(--charcoal); margin: 24px 0; opacity: 0.8; }
+  .hidden { display: none; }
+  .error-msg { color: #c0392b; font-size: 13.5px; margin-top: -10px; margin-bottom: 14px; }
+  .loading { text-align: center; padding: 40px 0; color: var(--charcoal); }
+</style>
+</head>
+<body>
+
+<div class="card" id="app">
+  <div class="brand">PRESENÇA · CÓDIGO DA CONVERSA</div>
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+  <div id="quizArea"></div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://gykonsallbevyoaeiiqt.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Q3yuIo2iiKdTxeRzshV7nw_zti6OMCS";
+const supabaseClient = (SUPABASE_URL.indexOf("SUA_URL") === -1)
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+const QUESTIONS = [{"situacao": "Em uma reunião, você tem uma ideia importante. Sua tendência é:", "options": [{"text": "Fazer questão de mostrar que sua ideia é mais completa.", "dim": "COMP"}, {"text": "Preparar argumentos para defendê-la.", "dim": "DEF"}, {"text": "Esperar o momento certo para falar.", "dim": "APR"}, {"text": "Pensar bastante antes de falar.", "dim": "EXPO"}, {"text": "Explicar todos os detalhes.", "dim": "EXPL"}]}, {"situacao": "Quando você discorda de alguém que tem mais autoridade que você, sua tendência é:", "options": [{"text": "Fazer questão de mostrar que também tem argumentos.", "dim": "COMP"}, {"text": "Mostrar que a responsabilidade não é sua.", "dim": "DEF"}, {"text": "Ficar calada.", "dim": "APR"}, {"text": "Explicar melhor seu ponto de vista.", "dim": "EXPL"}, {"text": "Ficar pensando no que dizer antes de se posicionar.", "dim": "EXPO"}]}, {"situacao": "Quando precisa falar o preço do seu trabalho, você costuma:", "options": [{"text": "Ficar desconfortável em falar o valor.", "dim": "EXPO"}, {"text": "Desafiar o cliente a encontrar um custo-benefício melhor.", "dim": "COMP"}, {"text": "Oferecer uma condição melhor antes de ouvir a resposta.", "dim": "APR"}, {"text": "Explicar tudo o que está incluído.", "dim": "EXPL"}, {"text": "Justificar o valor.", "dim": "DEF"}]}, {"situacao": "Quando alguém demora para pagar o que deve a você, você tende a:", "options": [{"text": "Lembrar o que já fez para aquela pessoa.", "dim": "DEF"}, {"text": "Dizer que outros clientes pagam em dia.", "dim": "COMP"}, {"text": "Explicar por que precisa receber.", "dim": "EXPL"}, {"text": "Evitar cobrar.", "dim": "APR"}, {"text": "Adiar a cobrança.", "dim": "EXPO"}]}, {"situacao": "Quando seu parceiro faz algo que incomoda você, sua tendência é:", "options": [{"text": "Ficar sem saber como falar sobre isso.", "dim": "EXPO"}, {"text": "Castigar a pessoa pelo que ela fez.", "dim": "COMP"}, {"text": "Explicar por que aquilo incomodou.", "dim": "EXPL"}, {"text": "Deixar para lá.", "dim": "APR"}, {"text": "Mostrar o que ele também fez.", "dim": "DEF"}]}, {"situacao": "Quando uma conversa com seu parceiro começa a ficar tensa, você tende a:", "options": [{"text": "Lembrar outras vezes em que ele fez o mesmo.", "dim": "COMP"}, {"text": "Mostrar que você também tem razão.", "dim": "DEF"}, {"text": "Explicar novamente o que quis dizer.", "dim": "EXPL"}, {"text": "Abrir mão da discussão.", "dim": "APR"}, {"text": "Ficar com receio de falar mais.", "dim": "EXPO"}]}, {"situacao": "Quando começa a gostar de alguém, você tende a:", "options": [{"text": "Falar bastante sobre você.", "dim": "EXPL"}, {"text": "Mostrar que não precisa daquela pessoa.", "dim": "DEF"}, {"text": "Querer mostrar que também tem opções.", "dim": "COMP"}, {"text": "Esperar a outra pessoa demonstrar primeiro.", "dim": "APR"}, {"text": "Esconder o que está sentindo.", "dim": "EXPO"}]}, {"situacao": "Quando precisa falar diante de pessoas importantes, você tende a:", "options": [{"text": "Fazer questão de mostrar que está à altura das pessoas presentes.", "dim": "COMP"}, {"text": "Esperar que alguém peça sua opinião.", "dim": "APR"}, {"text": "Ficar preocupada com a impressão que vai causar.", "dim": "EXPO"}, {"text": "Explicar todos os detalhes.", "dim": "EXPL"}, {"text": "Preparar respostas para possíveis questionamentos.", "dim": "DEF"}]}];
+const RESULTS = {"APR": {"nome": "APROVAÇÃO", "cor": "#86BD08", "conversa": "Se eu me posicionar, posso criar um problema.", "forca": "revela alguém que lê o ambiente antes de agir, que não cria atrito por impulso e que protege os vínculos que importam.", "atrapalha": "quando “esperar o momento certo” vira “nunca dizer”, e o que não foi dito se acumula."}, "DEF": {"nome": "DEFESA", "cor": "#834DAF", "conversa": "Eu preciso mostrar que tenho razão.", "forca": "revela alguém preparada, responsável, comprometida — capaz de sustentar suas posições e cuidadosa para não assumir uma culpa que não é sua.", "atrapalha": "quando qualquer questionamento passa a soar como ataque, e a conversa deixa de ser “vamos entender o que aconteceu” para virar “preciso provar que não fui eu”."}, "EXPL": {"nome": "EXPLICAÇÃO", "cor": "#01319D", "conversa": "Se eu explicar melhor, você vai entender.", "forca": "revela alguém que valoriza ser compreendida e se dedica a deixar as coisas claras — comunicativa, didática, disposta a se fazer entender.", "atrapalha": "quando a outra pessoa já entendeu e só discorda — e a explicação vira insistência, sem espaço para ouvir o que o outro pensa."}, "COMP": {"nome": "COMPETIÇÃO", "cor": "#834DAF", "conversa": "Eu não posso ficar por baixo.", "forca": "revela alguém que não se acomoda, busca ultrapassar expectativas e se importa genuinamente em estar à altura do que é exigido.", "atrapalha": "quando toda conversa vira disputa, e ganhar importa mais do que entender o outro lado."}, "EXPO": {"nome": "EXPOSIÇÃO", "cor": "#01319D", "conversa": "Melhor não me expor.", "forca": "revela alguém cautelosa, que pensa antes de agir e não se arrisca por impulso.", "atrapalha": "quando evitar julgamento também significa evitar ser vista — e a oportunidade passa em silêncio."}};
+
+let currentQuestion = 0;
+let answers = [];
+let userEmail = "";
+let emailCaptured = false;
+
+const quizArea = document.getElementById("quizArea");
+const progressBar = document.getElementById("progressBar");
+
+function updateProgress() {
+  const pct = Math.round((currentQuestion / QUESTIONS.length) * 100);
+  progressBar.style.width = pct + "%";
+}
+
+function renderQuestion() {
+  updateProgress();
+  const q = QUESTIONS[currentQuestion];
+  let html = `<h2 class="qtext">${q.situacao}</h2>`;
+  q.options.forEach((opt, i) => {
+    html += `<button class="opt" data-dim="${opt.dim}" onclick="selectAnswer('${opt.dim}')">${String.fromCharCode(65+i)}. ${opt.text}</button>`;
+  });
+  quizArea.innerHTML = html;
+}
+
+function selectAnswer(dim) {
+  answers.push(dim);
+  currentQuestion++;
+
+  if (currentQuestion === 1 && !emailCaptured) {
+    renderEmailCapture();
+  } else if (currentQuestion < QUESTIONS.length) {
+    renderQuestion();
+  } else {
+    finishQuiz();
+  }
+}
+
+function renderEmailCapture() {
+  quizArea.innerHTML = `
+    <div class="email-step">
+      <h2>Antes de continuar...</h2>
+      <p>Para onde enviamos o seu resultado?</p>
+      <input type="email" id="emailInput" placeholder="seu@email.com">
+      <div class="error-msg hidden" id="emailError">Digite um e-mail válido para continuar.</div>
+      <button class="btn" onclick="submitEmail()">Continuar →</button>
+    </div>
+  `;
+}
+
+function submitEmail() {
+  const val = document.getElementById("emailInput").value.trim();
+  const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  if (!isValid) {
+    document.getElementById("emailError").classList.remove("hidden");
+    return;
+  }
+  userEmail = val;
+  emailCaptured = true;
+  renderQuestion();
+}
+
+function tally() {
+  const scores = { APR: 0, DEF: 0, EXPL: 0, COMP: 0, EXPO: 0 };
+  answers.forEach(dim => scores[dim]++);
+  return scores;
+}
+
+function getPredominant(scores) {
+  const max = Math.max(...Object.values(scores));
+  const top = Object.keys(scores).filter(k => scores[k] === max);
+  return top; // array — pode ter mais de um em caso de empate
+}
+
+async function finishQuiz() {
+  quizArea.innerHTML = `<div class="loading">Calculando seu padrão...</div>`;
+  const scores = tally();
+  const predominant = getPredominant(scores);
+
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from("quiz_responses").insert({
+        email: userEmail,
+        answers: answers,
+        scores: scores,
+        predominant: predominant.join(" + ")
+      });
+    } catch (e) {
+      console.error("Erro ao salvar resposta:", e);
+      // Segue mostrando o resultado mesmo se salvar falhar
+    }
+  }
+
+  renderResult(predominant);
+}
+
+function renderResult(predominantKeys) {
+  let html = "";
+  predominantKeys.forEach((key, idx) => {
+    const r = RESULTS[key];
+    if (idx > 0) html += `<div style="text-align:center; margin: 10px 0; color:#999; font-size:14px;">+ também</div>`;
+    html += `
+      <div class="result-badge" style="background:${r.cor}">${r.nome}</div>
+      <div class="result-title">${predominantKeys.length > 1 ? "Perfil misto" : "Seu padrão predominante"}</div>
+      <div class="result-quote">"${r.conversa}"</div>
+      <div class="result-label">A força:</div>
+      <div class="result-text">${r.forca}</div>
+      <div class="result-label">Quando começa a atrapalhar:</div>
+      <div class="result-text">${r.atrapalha}</div>
+    `;
+  });
+  html += `
+    <div class="trust-note">Este resultado é uma amostra real do método — não uma versão simplificada de outra coisa.</div>
+    <a href="#" class="btn" style="text-decoration:none; text-align:center;">Quero ver a distância até a minha comunicação funcional →</a>
+  `;
+  progressBar.style.width = "100%";
+  quizArea.innerHTML = html;
+}
+
+renderQuestion();
+</script>
+</body>
+</html>
