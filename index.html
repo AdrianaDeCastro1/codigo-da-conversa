@@ -116,7 +116,7 @@ function renderEmailCapture() {
   quizArea.innerHTML = `
     <div class="email-step">
       <h2>Antes de continuar...</h2>
-      <p>Para onde enviamos o seu resultado?</p>
+      <p>Deixe seu melhor e-mail para ver seu resultado agora.</p>
       <input type="email" id="emailInput" placeholder="seu@email.com">
       <div class="error-msg hidden" id="emailError">Digite um e-mail válido para continuar.</div>
       <button class="btn" onclick="submitEmail()">Continuar →</button>
@@ -187,7 +187,7 @@ function renderResult(predominantKeys) {
   });
   html += `
     <div class="trust-note">Este resultado é uma amostra real do método — não uma versão simplificada de outra coisa.</div>
-    <a href="#" class="btn" style="text-decoration:none; text-align:center;">Quero ver a distância até a minha comunicação funcional →</a>
+    <a href="https://www.adrianadecastro.com.br/mapa-da-conversa" class="btn" style="text-decoration:none; text-align:center; display:block;">Quero ver a distância até a minha comunicação funcional →</a>
   `;
   progressBar.style.width = "100%";
   quizArea.innerHTML = html;
