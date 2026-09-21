@@ -288,7 +288,7 @@ async function finishQuiz() {
   }
 
   try {
-    await fetch('https://gykonsallbevyoaeiiqt.supabase.co/functions/v1/send-quiz-result', {
+    const emailResponse = await fetch('https://gykonsallbevyoaeiiqt.supabase.co/functions/v1/send-quiz-result', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -302,7 +302,9 @@ async function finishQuiz() {
         secondary: secondary.join(" + "),
         movement: movement.top.join(" e ")
       })
-    });
+    }); 
+    const emailData = await emailResponse.json();
+console.log("Resposta do envio:", emailResponse.status, emailData);
   } catch (e) {
     console.error("Erro ao enviar resultado por e-mail:", e);
   }
