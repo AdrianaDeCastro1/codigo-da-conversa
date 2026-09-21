@@ -287,6 +287,25 @@ async function finishQuiz() {
     }
   }
 
+  try {
+    await fetch('https://gykonsallbevyoaeiiqt.supabase.co/functions/v1/send-quiz-result', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      },
+      body: JSON.stringify({
+        name: document.getElementById("entrada de nome")?.value.trim() || "você",
+        email: userEmail,
+        result: primary[0],
+        secondary: secondary.join(" + "),
+        movement: movement.top.join(" e ")
+      })
+    });
+  } catch (e) {
+    console.error("Erro ao enviar resultado por e-mail:", e);
+  }
   renderResult(primary, secondary, movement.top);
 }
 
